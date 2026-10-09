@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ing_mass — спортивное питание</title>
+<style>
+:root{--bg:#111;--card:#1c1c1c;--y:#ffc400;--t:#f2f2f2;--m:#999}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,Arial,sans-serif;background:var(--bg);color:var(--t)}
+header{position:sticky;top:0;z-index:5;background:#000;border-bottom:2px solid var(--y);display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:8px;flex-wrap:wrap}
+.logo{font-size:22px;font-weight:800;color:var(--y);cursor:pointer}
+nav{display:flex;gap:8px;flex-wrap:wrap}
+button,.btn{background:var(--y);color:#000;border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer;font-size:14px}
+button.sec{background:#333;color:var(--t)}
+button.red{background:#c0392b;color:#fff}
+main{max-width:1000px;margin:0 auto;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.card{background:var(--card);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.card img{width:100%;aspect-ratio:3/4;object-fit:cover;cursor:pointer}
+.card .b{padding:12px;display:flex;flex-direction:column;gap:8px}
+.price{color:var(--y);font-size:20px;font-weight:800}
+.desc{background:#262626;padding:10px;border-radius:8px;font-size:14px;line-height:1.5;color:#ddd}
+input,select{width:100%;padding:11px;margin:6px 0;border-radius:8px;border:1px solid #444;background:#222;color:var(--t);font-size:15px}
+.box{background:var(--card);padding:16px;border-radius:14px;margin-bottom:16px;max-width:520px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid #333}
+.row img{width:56px;height:72px;object-fit:cover;border-radius:6px}
+.qty{display:flex;align-items:center;gap:6px}.qty button{padding:4px 10px}
+.note{background:#3a2f00;border:1px solid var(--y);padding:10px;border-radius:8px;margin-top:8px;font-size:14px}
+.err{color:#ff6b6b;min-height:20px}.m{color:var(--m);font-size:13px}
+.badge{background:#000;color:var(--y);border-radius:10px;padding:0 7px;margin-left:4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" onclick="go('shop')">Ing_mass</div>
+  <nav id="nav"></nav>
+</header>
+<main id="app"></main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let products = [], offices = [], user = null, openId = null;
+let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+const saveCart = () => { localStorage.setItem('cart', JSON.stringify(cart)); renderNav(); };
+const api = async (url, method = 'GET', body) => {
+  const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'Ошибка');
+  return j;
+};
+const rub = n => n.toLocaleString('ru-RU') + ' ₽';
+const cartCount = () => cart.reduce((a, i) => a + i.qty, 0);
+
+function go(p) { location.hash = p; }
+function renderNav() {
+  $('#nav').innerHTML =
+    `<button class="sec" onclick="go('shop')">Магазин</button>` +
+    `<button class="sec" onclick="go('cart')">Корзина<span class="badge">${cartCount()}</span></button>` +
+    (user ? `<button class="sec" onclick="go('profile')">${esc(user.name)}</button><button class="sec" onclick="logout()">Выйти</button>`
+          : `<button onclick="go('login')">Войти</button><button class="sec" onclick="go('register')">Регистрация</button>`);
+}
+
+function shop() {
+  $('#app').innerHTML = `<h2>Спортивное питание</h2><div class="grid">` + products.map(p => `
+    <div class="card">
+      <img src="${p.image}" alt="${esc(p.name)}" onclick="toggle('${p.id}')">
+      <div class="b">
+        <b>${esc(p.name)}</b>
+        <div class="price">${rub(p.price)}</div>
+        <button class="sec" onclick="toggle('${p.id}')">${openId === p.id ? 'Скрыть описание' : 'Описание'}</button>
+        ${openId === p.id ? `<div class="desc">${esc(p.description)}</div>` : ''}
+        <button onclick="add('${p.id}')">В корзину</button>
+      </div>
+    </div>`).join('') + `</div>`;
+}
+function toggle(id) { openId = openId === id ? null : id; shop(); }
+function add(id) {
+  const i = cart.find(x => x.id === id);
+  i ? i.qty++ : cart.push({ id, qty: 1 });
+  saveCart();
+}
+
+function cartView() {
+  if (!cart.length) { $('#app').innerHTML = `<h2>Корзина</h2><p>Корзина пуста</p>`; return; }
+  let total = 0;
+  const rows = cart.map(i => {
+    const p = products.find(x => x.id === i.id); if (!p) return '';
+    total += p.price * i.qty;
+    return `<div class="row"><img src="${p.image}"><div style="flex:1"><b>${esc(p.name)}</b><div class="m">${rub(p.price)}</div></div>
+      <div class="qty"><button class="sec" onclick="chg('${p.id}',-1)">−</button>${i.qty}<button class="sec" onclick="chg('${p.id}',1)">+</button></div></div>`;
+  }).join('');
+  $('#app').innerHTML = `<h2>Корзина</h2><div class="box" style="max-width:700px">${rows}
+    <h3>Итого: ${rub(total)}</h3><button onclick="go('checkout')">Купить</button></div>`;
+}
+function chg(id, d) {
+  const i = cart.find(x => x.id === id); i.qty += d;
+  if (i.qty <= 0) cart = cart.filter(x => x.id !== id);
+  saveCart(); cartView();
+}
+
+function checkout() {
+  if (!user) { go('login'); return; }
+  if (!cart.length) { go('cart'); return; }
+  const total = cart.reduce((a, i) => a + products.find(p => p.id === i.id).price * i.qty, 0);
+  $('#app').innerHTML = `<h2>Оформление заказа</h2><div class="box">
+    <p>Сумма к оплате: <b>${rub(total)}</b></p>
+    <label>Отделение Почты России (Республика Ингушетия):</label>
+    <select id="office"><option value="">— выберите —</option>
+      ${offices.map(o => `<option value="${o.id}">${esc(o.name)} — ${esc(o.address)}</option>`).join('')}</select>
+    <div class="err" id="err"></div>
+    <button id="payBtn" onclick="pay()">Оплатить</button>
+    <div class="note">После оплаты присылайте чек оплаты менеджеру <b>@TorVix_Baner</b></div></div>`;
+}
+async function pay() {
+  const officeId = $('#office').value;
+  if (!officeId) { $('#err').textContent = 'Выберите отделение почты'; return; }
+  $('#payBtn').disabled = true;
+  try {
+    const o = await api('/api/checkout', 'POST', { items: cart, officeId });
+    cart = []; saveCart();
+    $('#app').innerHTML = `<div class="box"><h2>Заказ №${o.id} оформлен ✅</h2>
+      <p>Сумма: <b>${rub(o.total)}</b></p><p>Доставка: ${esc(o.office.name)}<br>${esc(o.office.address)}</p>
+      <div class="note">Присылайте чек оплаты менеджеру <b>@TorVix_Baner</b></div>
+      <br><button onclick="go('profile')">В профиль</button></div>`;
+  } catch (e) { $('#err').textContent = e.message; $('#payBtn').disabled = false; }
+}
+
+function authForm(reg) {
+  $('#app').innerHTML = `<div class="box"><h2>${reg ? 'Регистрация' : 'Вход'}</h2>
+    ${reg ? `<input id="name" placeholder="Имя"><input id="phone" placeholder="Телефон">` : ''}
+    <input id="email" type="email" placeholder="Email"><input id="pass" type="password" placeholder="Пароль (от 6 символов)">
+    <div class="err" id="err"></div>
+    <button onclick="${reg ? 'doReg()' : 'doLogin()'}">${reg ? 'Зарегистрироваться' : 'Войти'}</button></div>`;
+}
+async function doReg() {
+  try { user = await api('/api/register', 'POST', { name: $('#name').value, phone: $('#phone').value, email: $('#email').value, password: $('#pass').value }); renderNav(); go('shop'); }
+  catch (e) { $('#err').textContent = e.message; }
+}
+async function doLogin() {
+  try { user = await api('/api/login', 'POST', { email: $('#email').value, password: $('#pass').value }); renderNav(); go('shop'); }
+  catch (e) { $('#err').textContent = e.message; }
+}
+async function logout() { await api('/api/logout', 'POST'); user = null; renderNav(); go('shop'); }
+
+async function profile() {
+  if (!user) { go('login'); return; }
+  const orders = await api('/api/orders');
+  $('#app').innerHTML = `<h2>Профиль</h2><div class="box">
+    <p><b>${esc(user.name)}</b><br>${esc(user.email)}<br>${esc(user.phone || '')}</p>
+    <button class="sec" onclick="logout()">Выйти</button>
+    <button class="red" onclick="delAcc()">Удалить профиль</button></div>
+    <h3>Мои заказы</h3>` + (orders.length ? orders.map(o => `<div class="box">
+      <b>Заказ №${o.id}</b> <span class="m">${new Date(o.date).toLocaleString('ru-RU')}</span>
+      ${o.items.map(i => `<div>• ${esc(i.name)} × ${i.qty}</div>`).join('')}
+      <p>Оплата: <b>${rub(o.total)}</b></p>
+      <div class="note">Присылайте чек оплаты менеджеру <b>@TorVix_Baner</b></div>
+      <p class="m">Доставка: ${esc(o.office.name)}, ${esc(o.office.address)}</p></div>`).join('') : '<p class="m">Заказов пока нет</p>');
+}
+async function delAcc() {
+  const password = prompt('Для удаления профиля введите пароль:');
+  if (!password) return;
+  try { await api('/api/me', 'DELETE', { password }); user = null; renderNav(); alert('Профиль удалён'); go('shop'); }
+  catch (e) { alert(e.message); }
+}
+
+function route() {
+  const p = location.hash.slice(1) || 'shop';
+  ({ shop, cart: cartView, checkout, login: () => authForm(false), register: () => authForm(true), profile }[p] || shop)();
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+(async () => {
+  [products, offices] = await Promise.all([api('/api/products'), api('/api/post-offices')]);
+  try { user = await api('/api/me'); } catch (e) {}
+  renderNav(); route();
+})();
+</script>
+</body>
+</html>
