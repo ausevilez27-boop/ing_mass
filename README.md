@@ -1,7 +1,43 @@
-# Ing_mass — запуск
-1. Установите Node.js 18+.
-2. В папке проекта: `npm install`
-3. Telegram: в @BotFather создайте бота → получите BOT_TOKEN. Откройте своего бота и нажмите Start. Свой chat_id узнайте у @userinfobot.
-4. Скопируйте `.env.example` в `.env`, впишите BOT_TOKEN, ADMIN_CHAT_ID, JWT_SECRET.
-5. `npm start` → http://localhost:3000
-6. Цены — data/products.json. Адреса почты — data/post_offices.json.
+# Array Flatten
+
+[![NPM version][npm-image]][npm-url]
+[![NPM downloads][downloads-image]][downloads-url]
+[![Build status][travis-image]][travis-url]
+[![Test coverage][coveralls-image]][coveralls-url]
+
+> Flatten an array of nested arrays into a single flat array. Accepts an optional depth.
+
+## Installation
+
+```
+npm install array-flatten --save
+```
+
+## Usage
+
+```javascript
+var flatten = require('array-flatten')
+
+flatten([1, [2, [3, [4, [5], 6], 7], 8], 9])
+//=> [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+flatten([1, [2, [3, [4, [5], 6], 7], 8], 9], 2)
+//=> [1, 2, 3, [4, [5], 6], 7, 8, 9]
+
+(function () {
+  flatten(arguments) //=> [1, 2, 3]
+})(1, [2, 3])
+```
+
+## License
+
+MIT
+
+[npm-image]: https://img.shields.io/npm/v/array-flatten.svg?style=flat
+[npm-url]: https://npmjs.org/package/array-flatten
+[downloads-image]: https://img.shields.io/npm/dm/array-flatten.svg?style=flat
+[downloads-url]: https://npmjs.org/package/array-flatten
+[travis-image]: https://img.shields.io/travis/blakeembrey/array-flatten.svg?style=flat
+[travis-url]: https://travis-ci.org/blakeembrey/array-flatten
+[coveralls-image]: https://img.shields.io/coveralls/blakeembrey/array-flatten.svg?style=flat
+[coveralls-url]: https://coveralls.io/r/blakeembrey/array-flatten?branch=master
